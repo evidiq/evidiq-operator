@@ -1,6 +1,6 @@
 import { recoverTypedDataAddress } from "viem";
 import { z } from "zod";
-import type { NotaryConfig } from "./config.js";
+import type { OperatorConfig } from "./config.js";
 import type {
   Hex,
   PaymentPayload,
@@ -77,7 +77,7 @@ const CLOCK_SKEW_SECONDS = 6n;
 export async function verifyPaymentLocal(
   p: PaymentPayload,
   reqs: PaymentRequirements,
-  cfg: NotaryConfig
+  cfg: OperatorConfig
 ): Promise<VerifyResult> {
   if (p.scheme !== "exact") {
     return { valid: false, reason: `unsupported scheme "${p.scheme}"` };

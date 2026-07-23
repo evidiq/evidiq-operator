@@ -3,18 +3,19 @@ import {
   buildAccepts,
   encodePaymentResponseHeader,
 } from "./challenge.js";
-import { getNotaryConfig } from "./config.js";
+import { getOperatorConfig } from "./config.js";
 import { getVerifier } from "./facilitator.js";
 import { decodePaymentHeader } from "./verify.js";
 
 /**
- * x402 gate in front of the EVIDIQ Notary MCP handler.
+ * x402 gate in front of the EVIDIQ Operator MCP handler.
  * Ported from Evidiq main (lib/x402/gate.ts), adapted for standalone Node.js.
  *
  * - No X402_* config → transparent pass-through (free endpoint).
- * - Free tools (verify_attestation, get_receipt, notary_stats, notary_pubkey,
+ * - Free tools (health, capabilities, supported_targets, estimate_cost,
  *   initialize, tools/list) ALWAYS pass — only PAID_TOOLS require payment.
  * - tools/call on a paid tool without PAYMENT-SIGNATURE → HTTP 402 + accepts[].
+ * - Operator is flat-priced: every paid browser tool costs cfg.price ($0.02).
  * - Accept-header leniency + SSE→JSON unwrapping for plain-HTTP x402 callers.
  */
 
@@ -38,23 +39,6 @@ function isPaidCall(msg: JsonRpcCall): boolean {
     typeof msg?.params?.name === "string" &&
     PAID_TOOLS.has(msg.params.name)
   );
-}
-
-/** Pick the right price (atomic) for a specific paid tool. Inference uses
- *  X402_PRICE; notarize_batch uses X402_BATCH_PRICE (covers up to 20 items). */
-function priceForTool(toolName: string | undefined, cfg: { price: bigint; batchPrice: bigint }): bigint {
-  if (toolName === "notarize_batch") return cfg.batchPrice;
-  return cfg.price;
-}
-
-/** Find the paid tool name in a JSON-RPC batch (if any). */
-function paidToolIn(messages: JsonRpcCall[]): string | undefined {
-  for (const m of messages) {
-    if (m?.method === "tools/call" && typeof m?.params?.name === "string" && PAID_TOOLS.has(m.params.name)) {
-      return m.params.name;
-    }
-  }
-  return undefined;
 }
 
 function acceptsEventStream(accept: string | null): boolean {
@@ -134,7 +118,7 @@ export function withX402Gate(
   handler: (req: Request) => Promise<Response>
 ): (req: Request) => Promise<Response> {
   return async (req: Request): Promise<Response> => {
-    const cfg = getNotaryConfig();
+    const cfg = getOperatorConfig();
     if (!cfg) return handler(req);
 
     const resourceUrl = req.url;
@@ -183,8 +167,7 @@ export function withX402Gate(
     }
 
     const payment = decodePaymentHeader(req);
-    const toolName = paidToolIn(messages);
-    const amount = priceForTool(toolName, cfg);
+    const amount = cfg.price;
     if (!payment) {
       return build402Response(cfg, resourceUrl, undefined, amount);
     }

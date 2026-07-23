@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-# EVIDIQ Notary MCP — production image (standalone Node.js server)
+# EVIDIQ Operator MCP — production image (standalone Node.js server)
 
 # ---- Builder: install deps and build TypeScript ----
 FROM node:22-bookworm-slim AS builder
@@ -21,9 +21,10 @@ ENV HOSTNAME=0.0.0.0
 COPY package.json package-lock.json ./
 RUN npm ci --omit=dev && npm cache clean --force
 
-# Copy built output and libs
+# Copy built output, libs, and public skill document
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/lib ./lib
+COPY --from=builder /app/skill.md ./skill.md
 
 EXPOSE 3000
 CMD ["node", "dist/start-server.js"]

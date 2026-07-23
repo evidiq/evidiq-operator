@@ -1,4 +1,4 @@
-import type { NotaryConfig } from "./config.js";
+import type { OperatorConfig } from "./config.js";
 import type {
   PaymentRequirements,
   PaymentResponseHeader,
@@ -27,7 +27,7 @@ function buildResource(resourceUrl: string): X402Resource {
 }
 
 export function buildAccepts(
-  cfg: NotaryConfig,
+  cfg: OperatorConfig,
   amountOverride?: bigint
 ): PaymentRequirements[] {
   const amount = (amountOverride ?? cfg.price).toString();
@@ -51,7 +51,7 @@ type Challenge = {
 };
 
 function challenge(
-  cfg: NotaryConfig,
+  cfg: OperatorConfig,
   resourceUrl: string,
   amountOverride?: bigint
 ): Challenge {
@@ -63,7 +63,7 @@ function challenge(
 }
 
 function paymentRequiredHeader(
-  cfg: NotaryConfig,
+  cfg: OperatorConfig,
   resourceUrl: string,
   amountOverride?: bigint
 ): string {
@@ -71,7 +71,7 @@ function paymentRequiredHeader(
 }
 
 export function build402Response(
-  cfg: NotaryConfig,
+  cfg: OperatorConfig,
   resourceUrl: string,
   error?: string,
   amountOverride?: bigint
@@ -93,22 +93,30 @@ export function build402Response(
 }
 
 export function buildDiscoveryResponse(
-  cfg: NotaryConfig,
+  cfg: OperatorConfig,
   resourceUrl: string
 ): Response {
-  // Discovery lists BOTH price tiers so callers can quote the right amount
-  // before their first paid call.
+  // Operator is flat-priced: every paid browser tool costs cfg.price ($0.02).
+  // The four discovery/telemetry tools are always free.
+  const paidUsd = Number(cfg.price) / 1e6;
+  const paid = (tool: string) => ({ tool, amount: cfg.price.toString(), usd: paidUsd });
+  const free = (tool: string) => ({ tool, amount: "0", usd: 0, free: true });
   const discovery = {
     x402Version: 2,
     resource: buildResource(resourceUrl),
     accepts: buildAccepts(cfg),
     pricing: [
-      { tool: "notarize_inference", amount: cfg.price.toString(), usd: Number(cfg.price) / 1e6 },
-      { tool: "notarize_batch", amount: cfg.batchPrice.toString(), usd: Number(cfg.batchPrice) / 1e6 },
-      { tool: "verify_attestation", amount: "0", usd: 0, free: true },
-      { tool: "get_receipt", amount: "0", usd: 0, free: true },
-      { tool: "notary_stats", amount: "0", usd: 0, free: true },
-      { tool: "notary_pubkey", amount: "0", usd: 0, free: true },
+      paid("browser_task"),
+      paid("login_and_extract"),
+      paid("fill_form"),
+      paid("download_document"),
+      paid("navigate"),
+      paid("screenshot"),
+      paid("multi_step_workflow"),
+      free("health"),
+      free("capabilities"),
+      free("supported_targets"),
+      free("estimate_cost"),
     ],
   };
   return new Response(JSON.stringify(discovery, null, 2), {

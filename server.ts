@@ -6,7 +6,7 @@ import { uploadJson } from "./lib/og/storage.js";
 import { getOgConfig } from "./lib/og/config.js";
 
 const ogConfig = getOgConfig();
-const NOTARY_INSTRUCTIONS = `EVIDIQ Operator — Browser execution for AI agents.
+const OPERATOR_INSTRUCTIONS = `EVIDIQ Operator — Browser execution for AI agents.
 
 Submit any browser task (natural-language description) and the agent drives a real Chromium browser on dedicated Linux desktop infrastructure. GPT-5.6-Terra (via 0G Compute) plans each action from screenshots. The agent never runs browser code itself — it only describes the next action, and we execute it.
 
@@ -336,7 +336,7 @@ export const handler = createMcpHandler(
     );
   },
   {
-    instructions: NOTARY_INSTRUCTIONS,
+    instructions: OPERATOR_INSTRUCTIONS,
     capabilities: { tools: {}, resources: {} },
   },
   {

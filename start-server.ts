@@ -1,7 +1,8 @@
+import { readFile } from "node:fs/promises";
 import { createServer, type IncomingHttpHeaders, type IncomingMessage, type ServerResponse } from "node:http";
 import { handler } from "./server.js";
 import { withX402Gate } from "./lib/x402/gate.js";
-import { getNotaryConfig } from "./lib/x402/config.js";
+import { getOperatorConfig } from "./lib/x402/config.js";
 import { buildDiscoveryResponse } from "./lib/x402/challenge.js";
 
 const PORT = Number(process.env.PORT || 3000);
@@ -80,6 +81,19 @@ const server = createServer(async (req, res) => {
     return;
   }
 
+  if (req.url === "/skill.md") {
+    try {
+      const skill = await readFile(new URL("../skill.md", import.meta.url), "utf8");
+      res.writeHead(200, { "Content-Type": "text/markdown; charset=utf-8", "Cache-Control": "public, max-age=300" });
+      res.end(skill);
+    } catch (error) {
+      console.error("Failed to read skill.md", error);
+      res.writeHead(500, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: "Skill document is unavailable" }));
+    }
+    return;
+  }
+
   if (req.url === "/" || req.url === "/health") {
     res.writeHead(200, { "Content-Type": "application/json" });
     res.end(JSON.stringify({ ok: true, service: "evidiq-operator-mcp" }));
@@ -90,7 +104,7 @@ const server = createServer(async (req, res) => {
 
   // x402 pricing discovery — GET /x402 returns the challenge (200, not 402).
   if (path === "/x402") {
-    const cfg = getNotaryConfig();
+    const cfg = getOperatorConfig();
     if (cfg) {
       const dr = buildDiscoveryResponse(cfg, `${getOrigin(req)}${path}`);
       await sendWebResponse(dr, res);
@@ -124,6 +138,6 @@ const server = createServer(async (req, res) => {
 });
 
 server.listen(PORT, HOSTNAME, () => {
-  console.log(`EVIDIQ Notary MCP server running on http://${HOSTNAME}:${PORT}`);
+  console.log(`EVIDIQ Operator MCP server running on http://${HOSTNAME}:${PORT}`);
   console.log(`MCP endpoint: http://${HOSTNAME}:${PORT}/mcp`);
 });

@@ -1,4 +1,4 @@
-import type { NotaryConfig } from "./config.js";
+import type { OperatorConfig } from "./config.js";
 import type { PaymentVerifier } from "./facilitator.js";
 import type {
   PaymentPayload,
@@ -40,7 +40,7 @@ const EIP3009_ABI = [
 ] as const;
 
 export class OnchainSettler implements PaymentVerifier {
-  constructor(private cfg: NotaryConfig) {}
+  constructor(private cfg: OperatorConfig) {}
 
   verify(p: PaymentPayload, reqs: PaymentRequirements): Promise<VerifyResult> {
     return verifyPaymentLocal(p, reqs, this.cfg);

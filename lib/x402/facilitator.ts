@@ -1,4 +1,4 @@
-import type { NotaryConfig } from "./config.js";
+import type { OperatorConfig } from "./config.js";
 import { OnchainSettler } from "./settle.js";
 import type {
   PaymentPayload,
@@ -21,7 +21,7 @@ export interface PaymentVerifier {
 const TESTNET_NETWORKS = new Set(["eip155:1952", "eip155:195"]);
 
 export class LocalVerifier implements PaymentVerifier {
-  constructor(private cfg: NotaryConfig) {}
+  constructor(private cfg: OperatorConfig) {}
 
   verify(p: PaymentPayload, reqs: PaymentRequirements): Promise<VerifyResult> {
     return verifyPaymentLocal(p, reqs, this.cfg);
@@ -52,7 +52,7 @@ const FACILITATOR_PATHS = {
 
 export class FacilitatorClient implements PaymentVerifier {
   private local: LocalVerifier;
-  constructor(private cfg: NotaryConfig) {
+  constructor(private cfg: OperatorConfig) {
     this.local = new LocalVerifier(cfg);
   }
 
@@ -125,7 +125,7 @@ export class FacilitatorClient implements PaymentVerifier {
   }
 }
 
-export function getVerifier(cfg: NotaryConfig): PaymentVerifier {
+export function getVerifier(cfg: OperatorConfig): PaymentVerifier {
   if (cfg.useFacilitator) return new FacilitatorClient(cfg);
   if (cfg.settleKey) return new OnchainSettler(cfg);
   return new LocalVerifier(cfg);
